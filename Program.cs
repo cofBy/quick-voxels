@@ -10,7 +10,7 @@ namespace VoxelRenderer
     {
         static void Main(string[] args)
         {
-            using (Main game = new Main(800, 600, "LearnOpenTK"))
+            using (Main game = new Main(800, 600, "QuickRenderer"))
             {
                 game.Run();
             }
