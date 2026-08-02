@@ -1,11 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
 using OpenTK.Windowing.Desktop;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using OpenTK.Graphics.OpenGL4;
+using System.Numerics;
 
 namespace VoxelRenderer
 {
@@ -18,19 +17,18 @@ namespace VoxelRenderer
         }
 
         float[] vertices = {
-         0.5f,  0.5f, 0.0f,  // top right
+         0.0f,  0.5f, 0.0f,  // top right
          0.5f, -0.5f, 0.0f,  // bottom right
         -0.5f, -0.5f, 0.0f,  // bottom left
-        -0.5f,  0.5f, 0.0f   // top left
         };
         uint[] indices = {
-        0, 1, 3,   // first triangle
-        1, 2, 3    // second triangle
+        0, 1, 2,   // first triangle
         };
 
         int VertexBufferObject;
         int VertexArrayObject;
         int ElementBufferObject;
+        double time;
 
         protected override void OnUpdateFrame(FrameEventArgs e)
         {
@@ -78,6 +76,16 @@ namespace VoxelRenderer
             GL.Clear(ClearBufferMask.ColorBufferBit);
 
             shader.Use();
+
+            Vector4 Color1 = new Vector4(0.106f, 0.647f, 0.929f, 1f);
+            Vector4 Color2 = new Vector4(1f, 0.647f, 0.929f, 1f);
+
+            time += e.Time;
+            float value = (float)Math.Sin(time) / 2 + 0.5f;
+            int colorLocation = GL.GetUniformLocation(shader.Handle, "globalColor");
+            Vector4 outColor = Vector4.Lerp(Color1, Color2, value);
+            GL.Uniform4(colorLocation, new OpenTK.Mathematics.Color4(outColor.X, outColor.Y, outColor.Z, outColor.W));
+
             GL.BindVertexArray(VertexArrayObject);
             GL.DrawElements(PrimitiveType.Triangles, indices.Length, DrawElementsType.UnsignedInt, 0);
 

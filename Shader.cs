@@ -10,7 +10,7 @@ namespace VoxelRenderer
 {
     public class Shader
     {
-        int Handle;
+        public int Handle;
         bool disposedValue = false;
 
         public Shader(string vertexPath, string fragmentPath)
