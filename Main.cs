@@ -4,7 +4,6 @@ using OpenTK.Windowing.Desktop;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using OpenTK.Graphics.OpenGL4;
-using System.Numerics;
 
 namespace VoxelRenderer
 {
@@ -12,24 +11,32 @@ namespace VoxelRenderer
     {
         Shader shader;
 
+        Texture tex1;
+        Texture tex2;
+
         public Main(int width, int height, string title) : base(GameWindowSettings.Default, new NativeWindowSettings() { ClientSize = (width, height), Title = title })
         {
         }
 
-        float[] vertices = {
-         0.0f,  0.5f, 0.0f,  // top right
-         0.5f, -0.5f, 0.0f,  // bottom right
-        -0.5f, -0.5f, 0.0f,  // bottom left
+        float[] vertices =
+        {
+            //Position          Texture coordinates
+             0.5f,  0.5f, 0.0f, 1.0f, 1.0f, // top right
+             0.5f, -0.5f, 0.0f, 1.0f, 0.0f, // bottom right
+            -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, // bottom left
+            -0.5f,  0.5f, 0.0f, 0.0f, 1.0f  // top left
         };
+
         uint[] indices = {
-        0, 1, 2,   // first triangle
+            0, 1, 2,   // first triangle
+            0, 2, 3,   // second triangle
         };
 
         int VertexBufferObject;
         int VertexArrayObject;
         int ElementBufferObject;
-        double time;
-
+        //double time;
+        
         protected override void OnUpdateFrame(FrameEventArgs e)
         {
             base.OnUpdateFrame(e);
@@ -52,15 +59,25 @@ namespace VoxelRenderer
 
             VertexArrayObject = GL.GenVertexArray();
             GL.BindVertexArray(VertexArrayObject);
-            GL.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, 3 * sizeof(float), 0);
+
+            GL.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, 5 * sizeof(float), 0);
             GL.EnableVertexAttribArray(0);
+
+            GL.EnableVertexAttribArray(1);
+            GL.VertexAttribPointer(1, 2, VertexAttribPointerType.Float, false, 5 * sizeof(float), 3 * sizeof(float));
 
             ElementBufferObject = GL.GenBuffer();
             GL.BindBuffer(BufferTarget.ElementArrayBuffer, ElementBufferObject);
             GL.BufferData(BufferTarget.ElementArrayBuffer, indices.Length * sizeof(uint), indices, BufferUsageHint.StaticDraw);
 
-            shader = new Shader("Z:/projectCof/VoxelRenderer/VoxelRenderer/shader.vert", "Z:/projectCof/VoxelRenderer/VoxelRenderer/shader.frag");
+            shader = new Shader("\\projectCof\\VoxelRenderer\\VoxelRenderer\\inputs\\shader.vert", "\\projectCof\\VoxelRenderer\\VoxelRenderer\\inputs\\shader.frag");
             shader.Use();
+
+            tex1 = new Texture("\\projectCof\\VoxelRenderer\\VoxelRenderer\\inputs\\catTouching.jpg");
+            tex2 = new Texture("\\projectCof\\VoxelRenderer\\VoxelRenderer\\inputs\\catStanding.png");
+
+            shader.SetInt("texture1", 1);
+            shader.SetInt("texture2", 2);
         }
         protected override void OnUnload()
         {
@@ -75,16 +92,9 @@ namespace VoxelRenderer
 
             GL.Clear(ClearBufferMask.ColorBufferBit);
 
+            tex1.Use(TextureUnit.Texture1);
+            tex2.Use(TextureUnit.Texture2);
             shader.Use();
-
-            Vector4 Color1 = new Vector4(0.106f, 0.647f, 0.929f, 1f);
-            Vector4 Color2 = new Vector4(1f, 0.647f, 0.929f, 1f);
-
-            time += e.Time;
-            float value = (float)Math.Sin(time) / 2 + 0.5f;
-            int colorLocation = GL.GetUniformLocation(shader.Handle, "globalColor");
-            Vector4 outColor = Vector4.Lerp(Color1, Color2, value);
-            GL.Uniform4(colorLocation, new OpenTK.Mathematics.Color4(outColor.X, outColor.Y, outColor.Z, outColor.W));
 
             GL.BindVertexArray(VertexArrayObject);
             GL.DrawElements(PrimitiveType.Triangles, indices.Length, DrawElementsType.UnsignedInt, 0);
