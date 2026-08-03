@@ -21,6 +21,8 @@ namespace VoxelRenderer
         Vector3 camDir = Vector3.UnitZ;
         Vector3 camRight;
         Vector3 camUp;
+        float yaw   = -MathHelper.PiOver2;
+        float pitch = 0;
 
         public Main(int width, int height, string title) : base(GameWindowSettings.Default, new NativeWindowSettings() { ClientSize = (width, height), Title = title })
         {
@@ -89,7 +91,7 @@ namespace VoxelRenderer
             float dt = (float)e.Time;
 
             float movementSpeed = 5;
-            float sensitivity = 2;
+            float sensitivity = 0.0005f;
 
             Vector2 center = new Vector2(Size.X / 2, Size.Y / 2);
             camRight = Vector3.Normalize(Vector3.Cross(Vector3.UnitY, camDir));
@@ -101,10 +103,23 @@ namespace VoxelRenderer
             camPos += (x * camRight + y * camUp + z * camDir) * movementSpeed;
 
             Vector2 mouseDelta = MousePosition - center;
-            camDir *= Matrix3.CreateRotationY(-mouseDelta.X * dt * sensitivity);
+
+            yaw   += mouseDelta.X * sensitivity;
+            pitch -= mouseDelta.Y * sensitivity;
+            pitch = MathHelper.Clamp(pitch, MathHelper.DegreesToRadians(-89f), MathHelper.DegreesToRadians(89f));
+
+            camDir = polarCoords(pitch, yaw);
 
             MousePosition = center;
             CursorState = CursorState.Hidden;
+        }
+
+        Vector3 polarCoords(float pitch, float yaw)
+        {
+            float x = MathF.Cos(pitch) * MathF.Sin(yaw);
+            float y = MathF.Sin(pitch);
+            float z = -MathF.Cos(pitch) * MathF.Cos(yaw);
+            return new Vector3(x, y, z).Normalized();
         }
 
         float input(Keys posKey, Keys negKey)
