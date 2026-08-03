@@ -4,6 +4,7 @@ using OpenTK.Windowing.Desktop;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using OpenTK.Graphics.OpenGL4;
+using OpenTK.Mathematics;
 
 namespace VoxelRenderer
 {
@@ -13,6 +14,8 @@ namespace VoxelRenderer
 
         Texture tex1;
         Texture tex2;
+
+        double time;
 
         public Main(int width, int height, string title) : base(GameWindowSettings.Default, new NativeWindowSettings() { ClientSize = (width, height), Title = title })
         {
@@ -35,7 +38,6 @@ namespace VoxelRenderer
         int VertexBufferObject;
         int VertexArrayObject;
         int ElementBufferObject;
-        //double time;
         
         protected override void OnUpdateFrame(FrameEventArgs e)
         {
@@ -51,7 +53,7 @@ namespace VoxelRenderer
         {
             base.OnLoad();
 
-            GL.ClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+            GL.ClearColor(0.3f, 0.4f, 0.4f, 1.0f);
 
             VertexBufferObject = GL.GenBuffer();
             GL.BindBuffer(BufferTarget.ArrayBuffer, VertexBufferObject);
@@ -98,6 +100,20 @@ namespace VoxelRenderer
 
             GL.BindVertexArray(VertexArrayObject);
             GL.DrawElements(PrimitiveType.Triangles, indices.Length, DrawElementsType.UnsignedInt, 0);
+
+            time += e.Time;
+
+            Matrix4 model = Matrix4.CreateRotationX((float)time);
+            Matrix4 view = Matrix4.CreateTranslation(0.0f, -0.5f, -3.0f);
+            Matrix4 projection = Matrix4.CreatePerspectiveFieldOfView(float.Pi * 0.25f, (float)Size.X / Size.Y, 0.1f, 100f);
+
+            GL.UseProgram(shader.Handle);
+            shader.SetMatrix4("model", model);
+            shader.SetMatrix4("view", view);
+            shader.SetMatrix4("projection", projection);
+
+            if (time * 0.5f % 0.2f < 0.01f) Title = $"QuickRenderer | frameRate: {Math.Round(1 / e.Time)} | (:";
+
 
             SwapBuffers();
         }
