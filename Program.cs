@@ -10,7 +10,7 @@ namespace VoxelRenderer
     {
         static void Main(string[] args)
         {
-            using (Main game = new Main(600, 600, "QuickRenderer"))
+            using (Main game = new Main(1920, 1080, "QuickRenderer"))
             {
                 game.Run();
             }

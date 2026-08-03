@@ -17,6 +17,11 @@ namespace VoxelRenderer
 
         double time;
 
+        Vector3 camPos = new Vector3(0.0f, 0.0f, -3.0f);
+        Vector3 camDir = Vector3.UnitZ;
+        Vector3 camRight;
+        Vector3 camUp;
+
         public Main(int width, int height, string title) : base(GameWindowSettings.Default, new NativeWindowSettings() { ClientSize = (width, height), Title = title })
         {
         }
@@ -79,10 +84,41 @@ namespace VoxelRenderer
         {
             base.OnUpdateFrame(e);
 
-            if (KeyboardState.IsKeyDown(Keys.Escape))
+            if (!IsFocused) return;
+
+            float dt = (float)e.Time;
+
+            float movementSpeed = 5;
+            float sensitivity = 2;
+
+            Vector2 center = new Vector2(Size.X / 2, Size.Y / 2);
+            camRight = Vector3.Normalize(Vector3.Cross(Vector3.UnitY, camDir));
+            camUp = Vector3.Normalize(Vector3.Cross(camDir, camRight));
+
+            float x = input(Keys.A, Keys.D) * dt;
+            float y = input(Keys.E, Keys.Q) * dt;
+            float z = input(Keys.W, Keys.S) * dt;
+            camPos += (x * camRight + y * camUp + z * camDir) * movementSpeed;
+
+            Vector2 mouseDelta = MousePosition - center;
+            camDir *= Matrix3.CreateRotationY(-mouseDelta.X * dt * sensitivity);
+
+            MousePosition = center;
+            CursorState = CursorState.Hidden;
+        }
+
+        float input(Keys posKey, Keys negKey)
+        {
+            float value = 0;
+            if (KeyboardState.IsKeyDown(posKey))
             {
-                Close();
+                value += 1;
             }
+            if (KeyboardState.IsKeyDown(negKey))
+            {
+                value -= 1;
+            }
+            return value;
         }
 
         protected override void OnLoad()
@@ -142,7 +178,7 @@ namespace VoxelRenderer
             time += e.Time;
 
             Matrix4 model = Matrix4.CreateRotationY((float)time) * Matrix4.CreateRotationX((float)time);
-            Matrix4 view = Matrix4.CreateTranslation(0.0f, 0.0f, -3.0f);
+            Matrix4 view = Matrix4.LookAt(camPos, camPos + camDir, camUp);
             Matrix4 projection = Matrix4.CreatePerspectiveFieldOfView(float.Pi * 0.25f, (float)Size.X / Size.Y, 0.1f, 100f);
 
             GL.UseProgram(shader.Handle);
