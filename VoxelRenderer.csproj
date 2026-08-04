@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
-    <OutputType>WinExe</OutputType>
+    <OutputType>Exe</OutputType>
     <AssemblyTitle>VoxelRenderer</AssemblyTitle>
     <Product>VoxelRenderer</Product>
     <Copyright>Copyright ©  2026</Copyright>
@@ -17,5 +17,10 @@
     <PackageReference Include="OpenTK" Version="4.9.4" />
     <PackageReference Include="StbImageSharp" Version="2.30.15" />
     <PackageReference Include="System.Data.DataSetExtensions" Version="4.5.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="inputs\**\*.*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 </Project>

@@ -82,12 +82,15 @@ namespace VoxelRenderer
 
         public void SetInt(string name, int value)
         {
-            int location = GL.GetUniformLocation(Handle, name);
-            GL.Uniform1(location, value);
+            GL.Uniform1(GL.GetUniformLocation(Handle, name), value);
         }
         public void SetMatrix4(string name, Matrix4 value)
         {
             GL.UniformMatrix4(GL.GetUniformLocation(Handle, name), true, ref value);
+        }
+        public void setVector3(string name, Vector3 value)
+        {
+            GL.Uniform3(GL.GetUniformLocation(Handle, name), ref value);
         }
 
 

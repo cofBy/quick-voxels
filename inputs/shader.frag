@@ -1,14 +1,18 @@
 #version 330 core
 out vec4 FragColor;
 
-in vec2 uv;
+in vec3 normal;
+in vec3 fragPos;
 
-uniform sampler2D texture1;
-uniform sampler2D texture2;
+uniform vec3 objectColor;
+uniform vec3 lightColor;
+uniform vec3 lightPos;
 
 void main()
 {
-    float gradiant = uv.x < 0.5 ? 2 * uv.x * uv.x: 1 - pow(-2 * uv.x + 2, 2) / 2;
+	vec3 lightDir = normalize(lightPos - fragPos);
 
-    FragColor = mix(texture(texture1, uv), texture(texture2, uv), gradiant);
+	vec3 diffuse = lightColor * max(dot(normalize(normal), lightDir), 0.0);
+
+	FragColor = vec4(objectColor * diffuse, 1.0);
 }
