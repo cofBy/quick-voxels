@@ -192,6 +192,7 @@ namespace VoxelRenderer
             shader.setVector3("objectColor", new Vector3(0.9f, 0.2f, 0.3f));
             shader.setVector3("lightColor", new Vector3(1.0f, 1.0f, 1.0f));
             shader.setVector3("lightPos", lampPos);
+            shader.setVector3("camPos", camPos);
             shader.SetMatrix4("model", model);
             shader.SetMatrix4("view", view);
             shader.SetMatrix4("projection", projection);
