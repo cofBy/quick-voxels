@@ -4,7 +4,6 @@ using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using System;
-using System.IO;
 
 namespace VoxelRenderer
 {
@@ -71,7 +70,38 @@ namespace VoxelRenderer
              0.5f,  0.5f,  0.5f,   0.0f,  1.0f,  0.0f,
              0.5f,  0.5f,  0.5f,   0.0f,  1.0f,  0.0f,
             -0.5f,  0.5f,  0.5f,   0.0f,  1.0f,  0.0f,
-            -0.5f,  0.5f, -0.5f,   0.0f,  1.0f,  0.0f,
+            -0.5f,  0.5f, -0.5f,   0.0f,  1.0f,  0.0f
+        };
+
+        Vector3 voxelRes = new Vector3(5, 5, 5);
+        int[] voxels =
+        {
+            //layer 0
+            3, 0, 1,
+            0, 2, 0,
+            2, 0, 3,
+
+            //layer 1
+            2, 0, 3,
+            0, 1, 0,
+            2, 0, 1,
+
+            //layer 2
+            1, 0, 3,
+            0, 2, 0,
+            3, 0, 1,
+        };
+
+        struct Material(Vector3 color, float shininess)
+        {
+            public Vector3 color = color;
+            public float shininess = shininess;
+        }
+        Material[] materials =
+        {
+            new Material(new Vector3(0.1f, 0.05f, 0.2f), 0.2f),
+            new Material(new Vector3(0.8f, 0.5f, 0.05f), 0.8f),
+            new Material(new Vector3(0.1f, 0.30f, 0.8f), 1.0f)
         };
 
         int VertexBufferObject;
@@ -80,7 +110,9 @@ namespace VoxelRenderer
 
         int lampVAO;
         Shader lampShader;
-        Vector3 lampPos = new Vector3(3.0f, 5.0f, 0.0f);
+        Vector3 lampPos = new Vector3(3.0f, -7.0f, 0.0f);
+
+        Vector3 sunDir = new Vector3(0.7f, 1.0f, 0.5f);
         
         protected override void OnUpdateFrame(FrameEventArgs e)
         {
@@ -157,15 +189,11 @@ namespace VoxelRenderer
             shader = new Shader("inputs/shader.vert", "inputs/shader.frag");
             shader.Use();
 
-            lampVAO = GL.GenVertexArray();
-            GL.BindVertexArray(lampVAO);
-            GL.BindBuffer(BufferTarget.ArrayBuffer, VertexBufferObject);
-
-            GL.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, 6 * sizeof(float), 0);
-            GL.EnableVertexAttribArray(0);
-
-            lampShader = new Shader("inputs/lamp.vert", "inputs/lamp.frag");
-            lampShader.Use();
+            voxels = new int[(int)(voxelRes.X * voxelRes.Y * voxelRes.Z)];
+            for (int i = 0; i < voxelRes.X * voxelRes.Y * voxelRes.Z; i++)
+            {
+                voxels[i] = new Random().Next(materials.Length + 1);
+            }
 
             GL.Enable(EnableCap.DepthTest);
         }
@@ -174,7 +202,6 @@ namespace VoxelRenderer
             base.OnUnload();
 
             shader.Dispose();
-            lampShader.Dispose();
         }
 
         protected override void OnRenderFrame(FrameEventArgs e)
@@ -188,23 +215,31 @@ namespace VoxelRenderer
 
             GL.BindVertexArray(VertexArrayObject);
             shader.Use();
-            Matrix4 model = Matrix4.CreateRotationX((float)time) * Matrix4.CreateRotationY((float)time);
-            shader.setVector3("objectColor", new Vector3(0.9f, 0.2f, 0.3f));
             shader.setVector3("lightColor", new Vector3(1.0f, 1.0f, 1.0f));
-            shader.setVector3("lightPos", lampPos);
+            shader.setVector3("lightDir", sunDir);
             shader.setVector3("camPos", camPos);
-            shader.SetMatrix4("model", model);
-            shader.SetMatrix4("view", view);
-            shader.SetMatrix4("projection", projection);
-            GL.DrawArrays(PrimitiveType.Triangles, 0, 36);
+            shader.setMatrix4("view", view);
+            shader.setMatrix4("projection", projection);
+            for (int x = 0; x < voxelRes.X; x++)
+            {
+                for (int y = 0; y < voxelRes.Y; y++)
+                {
+                    for (int z = 0; z < voxelRes.Z; z++)
+                    {
+                        int index = (int)(z * (voxelRes.X * voxelRes.Y) + y * voxelRes.X + x);
+                        if (voxels[index] == 0) continue;
 
-            GL.BindVertexArray(lampVAO);
-            lampShader.Use();
-            Matrix4 lightModel = Matrix4.CreateTranslation(lampPos) * Matrix4.CreateScale(0.25f);
-            lampShader.SetMatrix4("model", lightModel);
-            lampShader.SetMatrix4("view", view);
-            lampShader.SetMatrix4("projection", projection);
-            GL.DrawArrays(PrimitiveType.Triangles, 0, 36);
+                        Matrix4 model = Matrix4.CreateTranslation(new Vector3(x, y, z));
+                        shader.setMatrix4("model", model);
+
+                        shader.setVector3("myMat.objectColor", materials[voxels[index] - 1].color);
+                        shader.setFloat("myMat.specularStrength", materials[voxels[index] - 1].shininess);
+
+                        GL.DrawArrays(PrimitiveType.Triangles, 0, 36);
+                    }
+                }
+            }
+
 
             time += e.Time;
 

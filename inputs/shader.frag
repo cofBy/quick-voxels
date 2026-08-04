@@ -4,23 +4,27 @@ out vec4 FragColor;
 in vec3 normal;
 in vec3 fragPos;
 
-uniform vec3 objectColor;
+struct Material
+{
+	vec3 objectColor;
+	float specularStrength;
+};
+uniform Material myMat;
+
 uniform vec3 lightColor;
-uniform vec3 lightPos;
+uniform vec3 lightDir;
 uniform vec3 camPos;
 
 void main()
 {
 	float ampientStrength  = 0.2;
-	float specularStrength = 1.0;
 
-	vec3 lightDir = normalize(lightPos - fragPos);
 	vec3 viewDir  = normalize(camPos - fragPos);
-	vec3 reflectDir = reflect(-lightDir, normalize(normal));
+	vec3 reflectDir = reflect(-normalize(lightDir), normalize(normal));
 
-	vec3 diffuse  = lightColor * max(dot(normalize(normal), lightDir), 0.0);
+	vec3 diffuse  = lightColor * max(dot(normalize(normal), normalize(lightDir)), 0.0);
 	vec3 ambient  = ampientStrength * lightColor;
-	vec3 specular = specularStrength * pow(max(dot(viewDir, reflectDir), 0.0), 32) * lightColor;
+	vec3 specular = myMat.specularStrength * pow(max(dot(viewDir, reflectDir), 0.0), 16) * lightColor;
 
-	FragColor = vec4(objectColor * (diffuse + ambient + specular), 1.0);
+	FragColor = vec4(myMat.objectColor * (diffuse + ambient + specular), 1.0);
 }
