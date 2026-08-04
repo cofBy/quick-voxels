@@ -12,7 +12,10 @@ void main()
 {
 	vec3 lightDir = normalize(lightPos - fragPos);
 
-	vec3 diffuse = lightColor * max(dot(normalize(normal), lightDir), 0.0);
+	float ampientStrength = 0.2;
 
-	FragColor = vec4(objectColor * diffuse, 1.0);
+	vec3 diffuse = lightColor * max(dot(normalize(normal), lightDir), 0.0);
+	vec3 ambient = ampientStrength * lightColor;
+
+	FragColor = vec4(objectColor * (diffuse + ambient), 1.0);
 }
