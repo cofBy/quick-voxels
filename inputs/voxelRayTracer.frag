@@ -7,6 +7,8 @@ uniform vec3 camPos;
 uniform vec3 camDir;
 uniform vec3 camUp;
 uniform vec3 camRight;
+uniform vec3 lightColor;
+uniform vec3 lightDir;
 uniform vec2 res;
 
 struct Material
@@ -44,11 +46,12 @@ int flatten(vec3 pos)
 	return int(pos.z * (voxelRes.x * voxelRes.y) + pos.y * voxelRes.x + pos.x);
 }
 
-int voxelTraversal(Ray ray, out vec3 normal)
+int voxelTraversal(Ray ray, out vec3 normal, out vec3 voxelPos)
 {
     vec3 invDir = 1.0 / ray.dir;
     vec3 tDelta = abs(invDir);
     vec3 step = sign(ray.dir);
+    float hitT = 0;
 
     AABB box = AABB(vec3(0.0), voxelRes);
     vec3 t0 = (box.min - ray.origin) * invDir;
@@ -58,10 +61,10 @@ int voxelTraversal(Ray ray, out vec3 normal)
     float tMin = max(max(tSmall.x, tSmall.y), tSmall.z);
     float tMax = min(min(tBig.x, tBig.y), tBig.z);
     if (tMax < 0.0 || tMin > tMax) return 0;
-    
-    if (tSmall.x >= tSmall.y && tSmall.x >= tSmall.z) normal = vec3(-step.x, 0, 0);
-    else if (tSmall.y >= tSmall.z) normal = vec3(0, -step.y, 0);
-    else normal = vec3(0, 0, -step.z);
+
+    if (tMin == tSmall.x)      normal = vec3(-step.x, 0.0, 0.0);
+    else if (tMin == tSmall.y) normal = vec3(0.0, -step.y, 0.0);
+    else                       normal = vec3(0.0, 0.0, -step.z);
 
     tMin = max(tMin, 0.0);
 
@@ -74,23 +77,27 @@ int voxelTraversal(Ray ray, out vec3 normal)
         if (inBounds(currentStep))
         {
             int voxelMat = voxels[flatten(floor(currentStep))];
+            voxelPos = ray.origin + ray.dir * hitT;
             if (voxelMat != 0) return voxelMat;
         }
 
         if (t.x < t.y && t.x < t.z)
         {
+            hitT = t.x;
             currentStep.x += step.x;
             t.x += tDelta.x;
             normal = vec3(-step.x, 0, 0);
         }
         else if (t.y < t.z)
         {
+            hitT = t.y;
             currentStep.y += step.y;
             t.y += tDelta.y;
             normal = vec3(0, -step.y, 0);
         }
         else
         {
+            hitT = t.z;
             currentStep.z += step.z;
             t.z += tDelta.z;
             normal = vec3(0, 0, -step.z);
@@ -108,14 +115,23 @@ void main()
     vec3 rayDir = normalize(camDir + uv.x * camRight + uv.y * camUp);
 
     vec3 normal;
-    int mat = voxelTraversal(Ray(camPos, rayDir), normal);
+    vec3 voxelPos;
+    int mat = voxelTraversal(Ray(camPos, rayDir), normal, voxelPos);
     if (mat == 0)
     {
 	    FragColor = vec4(0.1, 0.12, 0.1, 1);
     }
     else
     {
-        //FragColor = vec4(materials[mat - 1].color, 1);
-        FragColor = vec4(abs(normal), 1);
+	    float ampientStrength  = 0.2;
+
+	    vec3 viewDir    = normalize(camPos - voxelPos);
+	    vec3 reflectDir = reflect(normalize(-lightDir), normalize(normal));
+
+	    vec3 diffuse  = lightColor * max(dot(normalize(normal), normalize(-lightDir)), 0.0);
+	    vec3 ambient  = ampientStrength * lightColor;
+	    vec3 specular = materials[mat - 1].shininess * pow(max(dot(viewDir, reflectDir), 0.0), 64) * lightColor;
+
+        FragColor = vec4(materials[mat - 1].color * (diffuse + ambient + specular), 1);
     }
 }

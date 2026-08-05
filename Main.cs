@@ -22,57 +22,6 @@ namespace VoxelRenderer
         public Main(int width, int height, string title) : base(GameWindowSettings.Default, new NativeWindowSettings() { ClientSize = (width, height), Title = title })
         {
         }
-        float[] vertices =
-        {
-            // Back face (normal: 0, 0, -1)
-            -0.5f, -0.5f, -0.5f,   0.0f,  0.0f, -1.0f,
-             0.5f, -0.5f, -0.5f,   0.0f,  0.0f, -1.0f,
-             0.5f,  0.5f, -0.5f,   0.0f,  0.0f, -1.0f,
-             0.5f,  0.5f, -0.5f,   0.0f,  0.0f, -1.0f,
-            -0.5f,  0.5f, -0.5f,   0.0f,  0.0f, -1.0f,
-            -0.5f, -0.5f, -0.5f,   0.0f,  0.0f, -1.0f,
-
-            // Front face (normal: 0, 0, 1)
-            -0.5f, -0.5f,  0.5f,   0.0f,  0.0f,  1.0f,
-             0.5f, -0.5f,  0.5f,   0.0f,  0.0f,  1.0f,
-             0.5f,  0.5f,  0.5f,   0.0f,  0.0f,  1.0f,
-             0.5f,  0.5f,  0.5f,   0.0f,  0.0f,  1.0f,
-            -0.5f,  0.5f,  0.5f,   0.0f,  0.0f,  1.0f,
-            -0.5f, -0.5f,  0.5f,   0.0f,  0.0f,  1.0f,
-
-            // Left face (normal: -1, 0, 0)
-            -0.5f,  0.5f,  0.5f,  -1.0f,  0.0f,  0.0f,
-            -0.5f,  0.5f, -0.5f,  -1.0f,  0.0f,  0.0f,
-            -0.5f, -0.5f, -0.5f,  -1.0f,  0.0f,  0.0f,
-            -0.5f, -0.5f, -0.5f,  -1.0f,  0.0f,  0.0f,
-            -0.5f, -0.5f,  0.5f,  -1.0f,  0.0f,  0.0f,
-            -0.5f,  0.5f,  0.5f,  -1.0f,  0.0f,  0.0f,
-
-            // Right face (normal: 1, 0, 0)
-             0.5f,  0.5f,  0.5f,   1.0f,  0.0f,  0.0f,
-             0.5f,  0.5f, -0.5f,   1.0f,  0.0f,  0.0f,
-             0.5f, -0.5f, -0.5f,   1.0f,  0.0f,  0.0f,
-             0.5f, -0.5f, -0.5f,   1.0f,  0.0f,  0.0f,
-             0.5f, -0.5f,  0.5f,   1.0f,  0.0f,  0.0f,
-             0.5f,  0.5f,  0.5f,   1.0f,  0.0f,  0.0f,
-
-            // Bottom face (normal: 0, -1, 0)
-            -0.5f, -0.5f, -0.5f,   0.0f, -1.0f,  0.0f,
-             0.5f, -0.5f, -0.5f,   0.0f, -1.0f,  0.0f,
-             0.5f, -0.5f,  0.5f,   0.0f, -1.0f,  0.0f,
-             0.5f, -0.5f,  0.5f,   0.0f, -1.0f,  0.0f,
-            -0.5f, -0.5f,  0.5f,   0.0f, -1.0f,  0.0f,
-            -0.5f, -0.5f, -0.5f,   0.0f, -1.0f,  0.0f,
-
-            // Top face (normal: 0, 1, 0)
-            -0.5f,  0.5f, -0.5f,   0.0f,  1.0f,  0.0f,
-             0.5f,  0.5f, -0.5f,   0.0f,  1.0f,  0.0f,
-             0.5f,  0.5f,  0.5f,   0.0f,  1.0f,  0.0f,
-             0.5f,  0.5f,  0.5f,   0.0f,  1.0f,  0.0f,
-            -0.5f,  0.5f,  0.5f,   0.0f,  1.0f,  0.0f,
-            -0.5f,  0.5f, -0.5f,   0.0f,  1.0f,  0.0f
-        };
-
         Vector3 voxelRes = new Vector3(20, 20, 20);
         int[] voxels = new int[0];
 
@@ -84,7 +33,7 @@ namespace VoxelRenderer
         Shader lampShader;
         Vector3 lampPos = new Vector3(3.0f, -7.0f, 0.0f);
 
-        Vector3 sunDir = new Vector3(0.7f, 1.0f, 0.5f);
+        Vector3 sunDir = new Vector3(0.7f, -1.0f, 0.5f);
 
         int fullScreenVAO;
         int fullScreenVBO;
@@ -109,7 +58,8 @@ namespace VoxelRenderer
 
             float dt = (float)e.Time;
 
-            float movementSpeed = 5;
+            float movementSpeed = 5.0f;
+            float fastMovementSpeed = 30.0f;
             float sensitivity = 2f;
 
             Vector2 center = new Vector2(Size.X / 2, Size.Y / 2);
@@ -117,7 +67,8 @@ namespace VoxelRenderer
             float x = input(Keys.D, Keys.A) * dt;
             float y = input(Keys.E, Keys.Q) * dt;
             float z = input(Keys.W, Keys.S) * dt;
-            camPos += (x * camRight + y * camUp + z * camDir) * movementSpeed;
+            float speed = KeyboardState.IsKeyDown(Keys.LeftShift) ? fastMovementSpeed : movementSpeed;
+            camPos += (x * camRight + y * camUp + z * camDir) * speed;
 
             Vector2 mouseDelta = MousePosition - center;
 
@@ -261,6 +212,8 @@ namespace VoxelRenderer
             fullscreenShader.setVector3("camDir", camDir);
             fullscreenShader.setVector3("camUp", camUp);
             fullscreenShader.setVector3("camRight", camRight);
+            fullscreenShader.setVector3("lightColor", new Vector3(1.0f, 1.0f, 1.0f));
+            fullscreenShader.setVector3("lightDir", sunDir);
             fullscreenShader.setVector3("voxelRes", voxelRes);
             fullscreenShader.setVector2("res", new Vector2(Size.X, Size.Y));
 
