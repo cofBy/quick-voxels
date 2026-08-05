@@ -17,6 +17,11 @@ struct Ray
     vec3 origin;
     vec3 dir;
 };
+struct AABB
+{
+    vec3 min;
+    vec3 max;
+};
 
 bool inBounds(vec3 pos)
 {
@@ -26,24 +31,54 @@ int flatten(vec3 pos)
 {
 	return int(pos.z * (voxelRes.x * voxelRes.y) + pos.y * voxelRes.x + pos.x);
 }
+
 int voxelTraversal(Ray ray)
 {
-    float step = 0.05;
-    float maxDistance = 20.0;
+    vec3 invDir = 1.0 / ray.dir;
 
-    vec3 currentStep = ray.origin;
+    AABB box = AABB(vec3(0.0), voxelRes);
+    vec3 t0 = (box.min - ray.origin) * invDir;
+    vec3 t1 = (box.max - ray.origin) * invDir;
+    vec3 tSmall = min(t0, t1);
+    vec3 tBig   = max(t0, t1);
+    float tMin = max(max(tSmall.x, tSmall.y), tSmall.z);
+    float tMax = min(min(tBig.x, tBig.y), tBig.z);
+    if (tMax < 0.0 || tMin > tMax) return 0;
+    tMin = max(tMin, 0.0);
 
-    while (length(currentStep - ray.origin) <= maxDistance)
+    vec3 tDelta = abs(invDir);
+    vec3 step = sign(ray.dir);
+    vec3 currentStep = floor(ray.origin + ray.dir * tMin);
+    vec3 planes = currentStep + max(step, 0.0);
+    vec3 t = (planes - ray.origin) * invDir;
+
+    while(true)
     {
-        vec3 voxelPos = floor(currentStep);
-        if (inBounds(voxelPos))
+        if (inBounds(currentStep))
         {
-            int v = voxels[flatten(voxelPos)];
-            if (v != 0) return v;
+            int voxelMat = voxels[flatten(floor(currentStep))];
+            if (voxelMat != 0) return voxelMat;
         }
-        currentStep += ray.dir * step;
+
+        if (t.x < t.y && t.x < t.z)
+        {
+            currentStep.x += step.x;
+            t.x += tDelta.x;
+        }
+        else if (t.y < t.z)
+        {
+            currentStep.y += step.y;
+            t.y += tDelta.y;
+        }
+        else
+        {
+            currentStep.z += step.z;
+            t.z += tDelta.z;
+        }
+
+        if (currentStep.x >= voxelRes.x || currentStep.y >= voxelRes.y || currentStep.z >= voxelRes.z) return 0;
+        if (currentStep.x < 0 || currentStep.y < 0 || currentStep.z < 0) return 0;
     }
-    return 0;
 }
 
 void main()
@@ -52,7 +87,8 @@ void main()
     vec2 uv = fragPos * vec2(aspect, 1.0);
     vec3 rayDir = normalize(camDir + uv.x * camRight + uv.y * camUp);
 
-    if (voxelTraversal(Ray(camPos, rayDir)) == 0)
+    int mat = voxelTraversal(Ray(camPos, rayDir));
+    if (mat == 0)
     {
 	    FragColor = vec4(0.1, 0.12, 0.1, 1);
     }
