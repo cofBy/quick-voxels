@@ -12,7 +12,7 @@ namespace VoxelRenderer
 
         double time;
 
-        Vector3 camPos = new Vector3(0.0f, 0.0f, 3.0f);
+        Vector3 camPos = new Vector3(-3.0f, 0.0f, -3.0f);
         Vector3 camDir = Vector3.UnitZ;
         Vector3 camRight;
         Vector3 camUp;
@@ -73,7 +73,7 @@ namespace VoxelRenderer
             -0.5f,  0.5f, -0.5f,   0.0f,  1.0f,  0.0f
         };
 
-        Vector3 voxelRes = new Vector3(5, 5, 5);
+        Vector3 voxelRes = new Vector3(20, 20, 20);
         int[] voxels = new int[0];
 
         //int VertexBufferObject;
