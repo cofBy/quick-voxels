@@ -92,6 +92,10 @@ namespace VoxelRenderer
         {
             GL.Uniform3(GL.GetUniformLocation(Handle, name), ref value);
         }
+        public void setVector2(string name, Vector2 value)
+        {
+            GL.Uniform2(GL.GetUniformLocation(Handle, name), ref value);
+        }
         public void setFloat(string name, float value)
         {
             GL.Uniform1(GL.GetUniformLocation(Handle, name), value);

@@ -104,19 +104,34 @@ namespace VoxelRenderer
             new Material(new Vector3(0.1f, 0.30f, 0.8f), 1.0f)
         };
 
-        int VertexBufferObject;
-        int VertexArrayObject;
-        Shader shader;
+        //int VertexBufferObject;
+        //int VertexArrayObject;
+        //Shader shader;
 
         int lampVAO;
         Shader lampShader;
         Vector3 lampPos = new Vector3(3.0f, -7.0f, 0.0f);
 
         Vector3 sunDir = new Vector3(0.7f, 1.0f, 0.5f);
+
+        int fullScreenVAO;
+        int fullScreenVBO;
+        int fullScreenEBO;
+        int voxelSSBO;
+        Shader fullscreenShader;
+
+        struct Ray(Vector3 origon, Vector3 dir)
+        {
+            public Vector3 origon = origon;
+            public Vector3 dir = dir;
+        }
         
         protected override void OnUpdateFrame(FrameEventArgs e)
         {
             base.OnUpdateFrame(e);
+
+            camRight = Vector3.Normalize(Vector3.Cross(Vector3.UnitY, camDir));
+            camUp = Vector3.Normalize(Vector3.Cross(camDir, camRight));
 
             if (!IsFocused) return;
 
@@ -126,17 +141,15 @@ namespace VoxelRenderer
             float sensitivity = 2f;
 
             Vector2 center = new Vector2(Size.X / 2, Size.Y / 2);
-            camRight = Vector3.Normalize(Vector3.Cross(Vector3.UnitY, camDir));
-            camUp = Vector3.Normalize(Vector3.Cross(camDir, camRight));
 
-            float x = input(Keys.A, Keys.D) * dt;
+            float x = input(Keys.D, Keys.A) * dt;
             float y = input(Keys.E, Keys.Q) * dt;
             float z = input(Keys.W, Keys.S) * dt;
             camPos += (x * camRight + y * camUp + z * camDir) * movementSpeed;
 
             Vector2 mouseDelta = MousePosition - center;
 
-            yaw   += mouseDelta.X * sensitivity * dt;
+            yaw   -= mouseDelta.X * sensitivity * dt;
             pitch -= mouseDelta.Y * sensitivity * dt;
             pitch = MathHelper.Clamp(pitch, MathHelper.DegreesToRadians(-89f), MathHelper.DegreesToRadians(89f));
 
@@ -172,74 +185,115 @@ namespace VoxelRenderer
         {
             base.OnLoad();
 
-            GL.ClearColor(0.3f, 0.4f, 0.4f, 1.0f);
+            GL.ClearColor(0.1f, 0.1f, 0.11f, 1.0f);
+            MousePosition = new Vector2(Size.X / 2, Size.Y / 2);
 
-            VertexBufferObject = GL.GenBuffer();
-            GL.BindBuffer(BufferTarget.ArrayBuffer, VertexBufferObject);
-            GL.BufferData(BufferTarget.ArrayBuffer, vertices.Length * sizeof(float), vertices, BufferUsageHint.StaticDraw);
+            float[] fullscreenVertices =
+            {
+                 1.0f,  1.0f, 0.0f,  // top right
+                 1.0f, -1.0f, 0.0f,  // bottom right
+                -1.0f, -1.0f, 0.0f,  // bottom left
+                -1.0f,  1.0f, 0.0f   // top left
+            };
+            uint[] indices = {
+                0, 1, 3,   // first triangle
+                1, 2, 3    // second triangle
+            };
 
-            VertexArrayObject = GL.GenVertexArray();
-            GL.BindVertexArray(VertexArrayObject);
+            fullScreenVBO = GL.GenBuffer();
+            GL.BindBuffer(BufferTarget.ArrayBuffer, fullScreenVBO);
+            GL.BufferData(BufferTarget.ArrayBuffer, fullscreenVertices.Length * sizeof(float), fullscreenVertices, BufferUsageHint.StaticDraw);
 
-            GL.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, 6 * sizeof(float), 0);
+            fullScreenVAO = GL.GenVertexArray();
+            GL.BindVertexArray(fullScreenVAO);
+            GL.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, 3 * sizeof(float), 0);
             GL.EnableVertexAttribArray(0);
-            GL.VertexAttribPointer(1, 3, VertexAttribPointerType.Float, false, 6 * sizeof(float), 3 * sizeof(float));
-            GL.EnableVertexAttribArray(1);
+            fullscreenShader = new Shader("inputs/voxelRayTracer.vert", "inputs/voxelRayTracer.frag");
+            fullscreenShader.Use();
 
-            shader = new Shader("inputs/shader.vert", "inputs/shader.frag");
-            shader.Use();
+            fullScreenEBO = GL.GenBuffer();
+            GL.BindBuffer(BufferTarget.ElementArrayBuffer, fullScreenEBO);
+            GL.BufferData(BufferTarget.ElementArrayBuffer, indices.Length * sizeof(uint), indices, BufferUsageHint.StaticDraw);
 
             voxels = new int[(int)(voxelRes.X * voxelRes.Y * voxelRes.Z)];
             for (int i = 0; i < voxelRes.X * voxelRes.Y * voxelRes.Z; i++)
             {
                 voxels[i] = new Random().Next(materials.Length + 1);
             }
+            voxelSSBO = GL.GenBuffer();
+            GL.BindBuffer(BufferTarget.ShaderStorageBuffer, voxelSSBO);
+            GL.BufferData(BufferTarget.ShaderStorageBuffer, voxels.Length * sizeof(int), voxels, BufferUsageHint.StaticDraw);
+            GL.BindBufferBase(BufferRangeTarget.ShaderStorageBuffer, 0, voxelSSBO);
+            GL.BindBuffer(BufferTarget.ShaderStorageBuffer, 0);
 
-            GL.Enable(EnableCap.DepthTest);
+            //VertexBufferObject = GL.GenBuffer();
+            //GL.BindBuffer(BufferTarget.ArrayBuffer, VertexBufferObject);
+            //GL.BufferData(BufferTarget.ArrayBuffer, vertices.Length * sizeof(float), vertices, BufferUsageHint.StaticDraw);
+
+            //VertexArrayObject = GL.GenVertexArray();
+            //GL.BindVertexArray(VertexArrayObject);
+            //GL.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, 6 * sizeof(float), 0);
+            //GL.EnableVertexAttribArray(0);
+            //GL.VertexAttribPointer(1, 3, VertexAttribPointerType.Float, false, 6 * sizeof(float), 3 * sizeof(float));
+            //GL.EnableVertexAttribArray(1);
+
+            //shader = new Shader("inputs/shader.vert", "inputs/shader.frag");
+            //shader.Use();
+
         }
         protected override void OnUnload()
         {
             base.OnUnload();
 
-            shader.Dispose();
+            //shader.Dispose();
         }
 
         protected override void OnRenderFrame(FrameEventArgs e)
         {
             base.OnRenderFrame(e);
 
-            GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+            GL.Clear(ClearBufferMask.ColorBufferBit);
 
-            Matrix4 view = Matrix4.LookAt(camPos, camPos + camDir, camUp);
-            Matrix4 projection = Matrix4.CreatePerspectiveFieldOfView(float.Pi * 0.5f, (float)Size.X / Size.Y, 0.1f, 100f);
+            //Matrix4 view = Matrix4.LookAt(camPos, camPos + camDir, camUp);
+            //Matrix4 projection = Matrix4.CreatePerspectiveFieldOfView(float.Pi * 0.5f, (float)Size.X / Size.Y, 0.1f, 100f);
 
-            GL.BindVertexArray(VertexArrayObject);
-            shader.Use();
-            shader.setVector3("lightColor", new Vector3(1.0f, 1.0f, 1.0f));
-            shader.setVector3("lightDir", sunDir);
-            shader.setVector3("camPos", camPos);
-            shader.setMatrix4("view", view);
-            shader.setMatrix4("projection", projection);
-            for (int x = 0; x < voxelRes.X; x++)
-            {
-                for (int y = 0; y < voxelRes.Y; y++)
-                {
-                    for (int z = 0; z < voxelRes.Z; z++)
-                    {
-                        int index = (int)(z * (voxelRes.X * voxelRes.Y) + y * voxelRes.X + x);
-                        if (voxels[index] == 0) continue;
+            //GL.BindVertexArray(VertexArrayObject);
+            //shader.Use();
+            //shader.setVector3("lightColor", new Vector3(1.0f, 1.0f, 1.0f));
+            //shader.setVector3("lightDir", sunDir);
+            //shader.setVector3("camPos", camPos);
+            //shader.setMatrix4("view", view);
+            //shader.setMatrix4("projection", projection);
+            //for (int x = 0; x < voxelRes.X; x++)
+            //{
+            //    for (int y = 0; y < voxelRes.Y; y++)
+            //    {
+            //        for (int z = 0; z < voxelRes.Z; z++)
+            //        {
+            //            int index = (int)(z * (voxelRes.X * voxelRes.Y) + y * voxelRes.X + x);
+            //            if (voxels[index] == 0) continue;
 
-                        Matrix4 model = Matrix4.CreateTranslation(new Vector3(x, y, z));
-                        shader.setMatrix4("model", model);
+            //            Matrix4 model = Matrix4.CreateTranslation(new Vector3(x, y, z));
+            //            shader.setMatrix4("model", model);
 
-                        shader.setVector3("myMat.objectColor", materials[voxels[index] - 1].color);
-                        shader.setFloat("myMat.specularStrength", materials[voxels[index] - 1].shininess);
+            //            shader.setVector3("myMat.objectColor", materials[voxels[index] - 1].color);
+            //            shader.setFloat("myMat.specularStrength", materials[voxels[index] - 1].shininess);
 
-                        GL.DrawArrays(PrimitiveType.Triangles, 0, 36);
-                    }
-                }
-            }
+            //            GL.DrawArrays(PrimitiveType.Triangles, 0, 36);
+            //        }
+            //    }
+            //}
 
+            fullscreenShader.Use();
+            fullscreenShader.setVector3("camPos", camPos);
+            fullscreenShader.setVector3("camDir", camDir);
+            fullscreenShader.setVector3("camUp", camUp);
+            fullscreenShader.setVector3("camRight", camRight);
+            fullscreenShader.setVector3("voxelRes", voxelRes);
+            fullscreenShader.setVector2("res", new Vector2(Size.X, Size.Y));
+
+            GL.BindVertexArray(fullScreenVAO);
+            GL.DrawElements(BeginMode.Triangles, 6, DrawElementsType.UnsignedInt, 0);
 
             time += e.Time;
 
@@ -247,7 +301,7 @@ namespace VoxelRenderer
 
             SwapBuffers();
         }
-
+        
         protected override void OnFramebufferResize(FramebufferResizeEventArgs e)
         {
             base.OnFramebufferResize(e);
