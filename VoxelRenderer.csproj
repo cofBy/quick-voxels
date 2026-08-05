@@ -17,6 +17,7 @@
     <PackageReference Include="OpenTK" Version="4.9.4" />
     <PackageReference Include="StbImageSharp" Version="2.30.15" />
     <PackageReference Include="System.Data.DataSetExtensions" Version="4.5.0" />
+    <PackageReference Include="Udun.FastNoiseLite" Version="1.0.1" />
   </ItemGroup>
   <ItemGroup>
     <None Include="inputs\**\*.*">

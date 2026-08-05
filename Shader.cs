@@ -96,10 +96,6 @@ namespace VoxelRenderer
         {
             GL.Uniform2(GL.GetUniformLocation(Handle, name), ref value);
         }
-        public void setFloat(string name, float value)
-        {
-            GL.Uniform1(GL.GetUniformLocation(Handle, name), value);
-        }
 
 
         public void Dispose()

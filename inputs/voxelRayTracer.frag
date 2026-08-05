@@ -11,20 +11,17 @@ uniform vec3 lightColor;
 uniform vec3 lightDir;
 uniform vec2 res;
 
-struct Material
+vec3[] materials =
 {
-    vec3 color;
-    float shininess;
-};
-Material[] materials =
-{
-    Material(vec3(0.1, 0.05, 0.2 ), 0.2),
-    Material(vec3(0.8, 0.5 , 0.05), 0.8),
-    Material(vec3(0.1, 0.3 , 0.8 ), 1.0)
+    vec3(0.31, 1.00, 0.23),
+    vec3(0.34, 0.20, 0.02),
+    vec3(0.20, 0.22, 0.21)
 };
 
 layout(std430, binding = 0) buffer voxelBuffer { int voxels[]; };
-uniform vec3 voxelRes;
+uniform int width;
+uniform int height;
+uniform int depth;
 
 struct Ray
 {
@@ -39,11 +36,11 @@ struct AABB
 
 bool inBounds(vec3 pos)
 {
-    return all(greaterThanEqual(pos, vec3(0.0))) && all(lessThan(pos, voxelRes));
+    return all(greaterThanEqual(pos, vec3(0.0))) && all(lessThan(pos, vec3(width, height, depth)));
 }
 int flatten(vec3 pos)
 {
-	return int(pos.z * (voxelRes.x * voxelRes.y) + pos.y * voxelRes.x + pos.x);
+	return int(pos.z * (width * height) + pos.y * width + pos.x);
 }
 
 int voxelTraversal(Ray ray, out vec3 normal, out vec3 voxelPos)
@@ -53,7 +50,7 @@ int voxelTraversal(Ray ray, out vec3 normal, out vec3 voxelPos)
     vec3 step = sign(ray.dir);
     float hitT = 0;
 
-    AABB box = AABB(vec3(0.0), voxelRes);
+    AABB box = AABB(vec3(0.0), vec3(width, height, depth));
     vec3 t0 = (box.min - ray.origin) * invDir;
     vec3 t1 = (box.max - ray.origin) * invDir;
     vec3 tSmall = min(t0, t1);
@@ -103,7 +100,7 @@ int voxelTraversal(Ray ray, out vec3 normal, out vec3 voxelPos)
             normal = vec3(0, 0, -step.z);
         }
 
-        if (currentStep.x >= voxelRes.x || currentStep.y >= voxelRes.y || currentStep.z >= voxelRes.z) return 0;
+        if (currentStep.x >= width || currentStep.y >= height || currentStep.z >= depth) return 0;
         if (currentStep.x < 0 || currentStep.y < 0 || currentStep.z < 0) return 0;
     }
 }
@@ -130,8 +127,7 @@ void main()
 
 	    vec3 diffuse  = lightColor * max(dot(normalize(normal), normalize(-lightDir)), 0.0);
 	    vec3 ambient  = ampientStrength * lightColor;
-	    vec3 specular = materials[mat - 1].shininess * pow(max(dot(viewDir, reflectDir), 0.0), 64) * lightColor;
 
-        FragColor = vec4(materials[mat - 1].color * (diffuse + ambient + specular), 1);
+        FragColor = vec4(materials[mat - 1] * (diffuse + ambient), 1);
     }
 }

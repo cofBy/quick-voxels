@@ -22,7 +22,7 @@ namespace VoxelRenderer
         public Main(int width, int height, string title) : base(GameWindowSettings.Default, new NativeWindowSettings() { ClientSize = (width, height), Title = title })
         {
         }
-        Vector3 voxelRes = new Vector3(20, 20, 20);
+        Vector3i voxelRes = new Vector3i(300, 100, 300);
         int[] voxels = new int[0];
 
         //int VertexBufferObject;
@@ -40,12 +40,6 @@ namespace VoxelRenderer
         int fullScreenEBO;
         int voxelSSBO;
         Shader fullscreenShader;
-
-        struct Ray(Vector3 origon, Vector3 dir)
-        {
-            public Vector3 origon = origon;
-            public Vector3 dir = dir;
-        }
         
         protected override void OnUpdateFrame(FrameEventArgs e)
         {
@@ -60,7 +54,7 @@ namespace VoxelRenderer
 
             float movementSpeed = 5.0f;
             float fastMovementSpeed = 30.0f;
-            float sensitivity = 2f;
+            float sensitivity = 0.007f;
 
             Vector2 center = new Vector2(Size.X / 2, Size.Y / 2);
 
@@ -72,8 +66,8 @@ namespace VoxelRenderer
 
             Vector2 mouseDelta = MousePosition - center;
 
-            yaw   -= mouseDelta.X * sensitivity * dt;
-            pitch -= mouseDelta.Y * sensitivity * dt;
+            yaw   -= mouseDelta.X * sensitivity;
+            pitch -= mouseDelta.Y * sensitivity;
             pitch = MathHelper.Clamp(pitch, MathHelper.DegreesToRadians(-89f), MathHelper.DegreesToRadians(89f));
 
             camDir = polarCoords(pitch, yaw);
@@ -139,36 +133,42 @@ namespace VoxelRenderer
             GL.BufferData(BufferTarget.ElementArrayBuffer, indices.Length * sizeof(uint), indices, BufferUsageHint.StaticDraw);
 
             voxels = new int[(int)(voxelRes.X * voxelRes.Y * voxelRes.Z)];
-            for (int i = 0; i < voxelRes.X * voxelRes.Y * voxelRes.Z; i++)
+
+            FastNoiseLite noise = new FastNoiseLite(0);
+            noise.SetNoiseType(FastNoiseLite.NoiseType.Perlin);
+            noise.SetFractalType(FastNoiseLite.FractalType.FBm);
+            noise.SetFrequency(0.008f);
+            for (int x = 0; x < voxelRes.X; x++)
             {
-                voxels[i] = new Random().Next(4);
+                for (int z = 0; z < voxelRes.Z; z++)
+                {
+                    for (int y = 0; y < voxelRes.Y; y++)
+                    {
+                        float grassThreshold = 0.8f;
+                        float dirtThreshold  = 0.77f;
+                        float stoneThreshold = 0.65f;
+
+                        float height = (float)y / voxelRes.Y;
+                        float noiseValue = noise.GetNoise(x, z) * 0.5f + 0.5f;
+                        int index = z * (voxelRes.X * voxelRes.Y) + y * voxelRes.X + x;
+
+                        voxels[index] = 0;
+                        if (height < stoneThreshold * noiseValue) voxels[index] = 3;
+                        else if (height < dirtThreshold * noiseValue) voxels[index] = 2;
+                        else if (height < grassThreshold * noiseValue) voxels[index] = 1;
+                    }
+                }
             }
             voxelSSBO = GL.GenBuffer();
             GL.BindBuffer(BufferTarget.ShaderStorageBuffer, voxelSSBO);
             GL.BufferData(BufferTarget.ShaderStorageBuffer, voxels.Length * sizeof(int), voxels, BufferUsageHint.StaticDraw);
             GL.BindBufferBase(BufferRangeTarget.ShaderStorageBuffer, 0, voxelSSBO);
             GL.BindBuffer(BufferTarget.ShaderStorageBuffer, 0);
-
-            //VertexBufferObject = GL.GenBuffer();
-            //GL.BindBuffer(BufferTarget.ArrayBuffer, VertexBufferObject);
-            //GL.BufferData(BufferTarget.ArrayBuffer, vertices.Length * sizeof(float), vertices, BufferUsageHint.StaticDraw);
-
-            //VertexArrayObject = GL.GenVertexArray();
-            //GL.BindVertexArray(VertexArrayObject);
-            //GL.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, 6 * sizeof(float), 0);
-            //GL.EnableVertexAttribArray(0);
-            //GL.VertexAttribPointer(1, 3, VertexAttribPointerType.Float, false, 6 * sizeof(float), 3 * sizeof(float));
-            //GL.EnableVertexAttribArray(1);
-
-            //shader = new Shader("inputs/shader.vert", "inputs/shader.frag");
-            //shader.Use();
-
         }
         protected override void OnUnload()
         {
             base.OnUnload();
-
-            //shader.Dispose();
+            fullscreenShader.Dispose();
         }
 
         protected override void OnRenderFrame(FrameEventArgs e)
@@ -177,36 +177,6 @@ namespace VoxelRenderer
 
             GL.Clear(ClearBufferMask.ColorBufferBit);
 
-            //Matrix4 view = Matrix4.LookAt(camPos, camPos + camDir, camUp);
-            //Matrix4 projection = Matrix4.CreatePerspectiveFieldOfView(float.Pi * 0.5f, (float)Size.X / Size.Y, 0.1f, 100f);
-
-            //GL.BindVertexArray(VertexArrayObject);
-            //shader.Use();
-            //shader.setVector3("lightColor", new Vector3(1.0f, 1.0f, 1.0f));
-            //shader.setVector3("lightDir", sunDir);
-            //shader.setVector3("camPos", camPos);
-            //shader.setMatrix4("view", view);
-            //shader.setMatrix4("projection", projection);
-            //for (int x = 0; x < voxelRes.X; x++)
-            //{
-            //    for (int y = 0; y < voxelRes.Y; y++)
-            //    {
-            //        for (int z = 0; z < voxelRes.Z; z++)
-            //        {
-            //            int index = (int)(z * (voxelRes.X * voxelRes.Y) + y * voxelRes.X + x);
-            //            if (voxels[index] == 0) continue;
-
-            //            Matrix4 model = Matrix4.CreateTranslation(new Vector3(x, y, z));
-            //            shader.setMatrix4("model", model);
-
-            //            shader.setVector3("myMat.objectColor", materials[voxels[index] - 1].color);
-            //            shader.setFloat("myMat.specularStrength", materials[voxels[index] - 1].shininess);
-
-            //            GL.DrawArrays(PrimitiveType.Triangles, 0, 36);
-            //        }
-            //    }
-            //}
-
             fullscreenShader.Use();
             fullscreenShader.setVector3("camPos", camPos);
             fullscreenShader.setVector3("camDir", camDir);
@@ -214,7 +184,9 @@ namespace VoxelRenderer
             fullscreenShader.setVector3("camRight", camRight);
             fullscreenShader.setVector3("lightColor", new Vector3(1.0f, 1.0f, 1.0f));
             fullscreenShader.setVector3("lightDir", sunDir);
-            fullscreenShader.setVector3("voxelRes", voxelRes);
+            fullscreenShader.setInt("width", voxelRes.X);
+            fullscreenShader.setInt("height", voxelRes.Y);
+            fullscreenShader.setInt("depth", voxelRes.Z);
             fullscreenShader.setVector2("res", new Vector2(Size.X, Size.Y));
 
             GL.BindVertexArray(fullScreenVAO);
@@ -222,7 +194,7 @@ namespace VoxelRenderer
 
             time += e.Time;
 
-            if (time * 0.5f % 0.2f < 0.01f) Title = $"QuickRenderer | frameRate: {Math.Round(1 / e.Time)} | (:";
+            if (time * 0.5f % 0.2f < 0.01f) Title = $"QuickRenderer | frameRate: {Math.Round(1 / e.Time)} | (: | voxels grid: {voxelRes.X}x{voxelRes.Y}x{voxelRes.Z} | resolution: {Size.X}x{Size.Y}";
 
             SwapBuffers();
         }
