@@ -25,14 +25,6 @@ namespace VoxelRenderer
         Vector3i voxelRes = new Vector3i(300, 100, 300);
         int[] voxels = new int[0];
 
-        //int VertexBufferObject;
-        //int VertexArrayObject;
-        //Shader shader;
-
-        int lampVAO;
-        Shader lampShader;
-        Vector3 lampPos = new Vector3(3.0f, -7.0f, 0.0f);
-
         Vector3 sunDir = new Vector3(0.7f, -1.0f, 0.5f);
 
         int fullScreenVAO;
@@ -97,6 +89,19 @@ namespace VoxelRenderer
             }
             return value;
         }
+        float input(MouseButton posKey, MouseButton negKey)
+        {
+            float value = 0;
+            if (MouseState.IsButtonDown(posKey))
+            {
+                value += 1;
+            }
+            if (MouseState.IsButtonDown(negKey))
+            {
+                value -= 1;
+            }
+            return value;
+        }
 
         protected override void OnLoad()
         {
@@ -137,6 +142,8 @@ namespace VoxelRenderer
             FastNoiseLite noise = new FastNoiseLite(0);
             noise.SetNoiseType(FastNoiseLite.NoiseType.Perlin);
             noise.SetFractalType(FastNoiseLite.FractalType.FBm);
+            noise.SetFractalLacunarity(2.0f);
+            noise.SetFractalOctaves(3);
             noise.SetFrequency(0.008f);
             for (int x = 0; x < voxelRes.X; x++)
             {
@@ -187,6 +194,7 @@ namespace VoxelRenderer
             fullscreenShader.setInt("width", voxelRes.X);
             fullscreenShader.setInt("height", voxelRes.Y);
             fullscreenShader.setInt("depth", voxelRes.Z);
+            fullscreenShader.setInt("mouseInput", (int)input(MouseButton.Left, MouseButton.Right));
             fullscreenShader.setVector2("res", new Vector2(Size.X, Size.Y));
 
             GL.BindVertexArray(fullScreenVAO);
