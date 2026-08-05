@@ -74,35 +74,7 @@ namespace VoxelRenderer
         };
 
         Vector3 voxelRes = new Vector3(5, 5, 5);
-        int[] voxels =
-        {
-            //layer 0
-            3, 0, 1,
-            0, 2, 0,
-            2, 0, 3,
-
-            //layer 1
-            2, 0, 3,
-            0, 1, 0,
-            2, 0, 1,
-
-            //layer 2
-            1, 0, 3,
-            0, 2, 0,
-            3, 0, 1,
-        };
-
-        struct Material(Vector3 color, float shininess)
-        {
-            public Vector3 color = color;
-            public float shininess = shininess;
-        }
-        Material[] materials =
-        {
-            new Material(new Vector3(0.1f, 0.05f, 0.2f), 0.2f),
-            new Material(new Vector3(0.8f, 0.5f, 0.05f), 0.8f),
-            new Material(new Vector3(0.1f, 0.30f, 0.8f), 1.0f)
-        };
+        int[] voxels = new int[0];
 
         //int VertexBufferObject;
         //int VertexArrayObject;
@@ -218,7 +190,7 @@ namespace VoxelRenderer
             voxels = new int[(int)(voxelRes.X * voxelRes.Y * voxelRes.Z)];
             for (int i = 0; i < voxelRes.X * voxelRes.Y * voxelRes.Z; i++)
             {
-                voxels[i] = new Random().Next(materials.Length + 1);
+                voxels[i] = new Random().Next(4);
             }
             voxelSSBO = GL.GenBuffer();
             GL.BindBuffer(BufferTarget.ShaderStorageBuffer, voxelSSBO);

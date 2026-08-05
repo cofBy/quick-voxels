@@ -9,6 +9,18 @@ uniform vec3 camUp;
 uniform vec3 camRight;
 uniform vec2 res;
 
+struct Material
+{
+    vec3 color;
+    float shininess;
+};
+Material[] materials =
+{
+    Material(vec3(0.1, 0.05, 0.2 ), 0.2),
+    Material(vec3(0.8, 0.5 , 0.05), 0.8),
+    Material(vec3(0.1, 0.3 , 0.8 ), 1.0)
+};
+
 layout(std430, binding = 0) buffer voxelBuffer { int voxels[]; };
 uniform vec3 voxelRes;
 
@@ -94,6 +106,6 @@ void main()
     }
     else
     {
-        FragColor = vec4(1);
+        FragColor = vec4(materials[mat - 1].color, 1);
     }
 }
