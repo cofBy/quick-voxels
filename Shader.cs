@@ -57,6 +57,35 @@ namespace VoxelRenderer
             GL.DeleteShader(fragmentShader);
             GL.DeleteShader(vertexShader);
         }
+        public Shader(string computePath)
+        {
+            int computeShader;
+
+            string computeShaderSource = File.ReadAllText(computePath);
+            computeShader = GL.CreateShader(ShaderType.ComputeShader);
+            GL.ShaderSource(computeShader, computeShaderSource);
+            GL.CompileShader(computeShader);
+            GL.GetShader(computeShader, ShaderParameter.CompileStatus, out int Vsuccess);
+            if (Vsuccess == 0)
+            {
+                string infoLog = GL.GetShaderInfoLog(computeShader);
+                Console.WriteLine(infoLog);
+            }
+
+            Handle = GL.CreateProgram();
+            GL.AttachShader(Handle, computeShader);
+            GL.LinkProgram(Handle);
+            GL.GetProgram(Handle, GetProgramParameterName.LinkStatus, out int success);
+            if (success == 0)
+            {
+                string infoLog = GL.GetProgramInfoLog(Handle);
+                Console.WriteLine(infoLog);
+            }
+
+            GL.DetachShader(Handle, computeShader);
+            GL.DeleteShader(computeShader);
+        }
+
         public void Use()
         {
             GL.UseProgram(Handle);
@@ -95,6 +124,10 @@ namespace VoxelRenderer
         public void setVector2(string name, Vector2 value)
         {
             GL.Uniform2(GL.GetUniformLocation(Handle, name), ref value);
+        }
+        public void setFloat(string name, float value)
+        {
+            GL.Uniform1(GL.GetUniformLocation(Handle, name), value);
         }
 
 

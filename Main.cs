@@ -9,7 +9,6 @@ namespace VoxelRenderer
 {
     public class Main : GameWindow
     {
-
         double time;
 
         Vector3 camPos = new Vector3(-3.0f, 0.0f, -3.0f);
@@ -22,7 +21,7 @@ namespace VoxelRenderer
         public Main(int width, int height, string title) : base(GameWindowSettings.Default, new NativeWindowSettings() { ClientSize = (width, height), Title = title })
         {
         }
-        Vector3i voxelRes = new Vector3i(300, 100, 300);
+        Vector3i voxelRes = new Vector3i(256, 128, 256);
         int[] voxels = new int[0];
 
         Vector3 sunDir = new Vector3(0.7f, -1.0f, 0.5f);
