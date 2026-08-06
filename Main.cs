@@ -9,7 +9,7 @@ namespace VoxelRenderer
 {
     public class Main : GameWindow
     {
-        double time;
+        float stepTimer;
 
         Vector3 camPos = new Vector3(-3.0f, 0.0f, -3.0f);
         Vector3 camDir = Vector3.UnitZ;
@@ -21,7 +21,7 @@ namespace VoxelRenderer
         public Main(int width, int height, string title) : base(GameWindowSettings.Default, new NativeWindowSettings() { ClientSize = (width, height), Title = title })
         {
         }
-        Vector3i voxelRes = new Vector3i(256, 128, 256);
+        Vector3i voxelRes = new Vector3i(700, 400, 700);
         int[] voxels = new int[0];
 
         Vector3 sunDir = new Vector3(0.7f, -1.0f, 0.5f);
@@ -65,6 +65,15 @@ namespace VoxelRenderer
 
             MousePosition = center;
             CursorState = CursorState.Hidden;
+
+            stepTimer -= (float)e.Time;
+            fullscreenShader.setFloat("time", stepTimer);
+            float timeToStep = 0.1f;
+            if (stepTimer <= 0)
+            {
+                stepTimer += timeToStep;
+                Title = $"QuickRenderer | frameRate: {Math.Round(1 / e.Time)} | (: | voxels grid: {voxelRes.X}x{voxelRes.Y}x{voxelRes.Z} | resolution: {Size.X}x{Size.Y}";
+            }
         }
 
         Vector3 polarCoords(float pitch, float yaw)
@@ -136,14 +145,18 @@ namespace VoxelRenderer
             GL.BindBuffer(BufferTarget.ElementArrayBuffer, fullScreenEBO);
             GL.BufferData(BufferTarget.ElementArrayBuffer, indices.Length * sizeof(uint), indices, BufferUsageHint.StaticDraw);
 
-            voxels = new int[(int)(voxelRes.X * voxelRes.Y * voxelRes.Z)];
-
+            long voxelsAmount = (long)voxelRes.X * voxelRes.Y * voxelRes.Z;
+            if (voxelsAmount > int.MaxValue)
+            {
+                throw new Exception("bro, ts too large");
+            }
+            voxels = new int[voxelsAmount];
             FastNoiseLite noise = new FastNoiseLite(0);
             noise.SetNoiseType(FastNoiseLite.NoiseType.Perlin);
             noise.SetFractalType(FastNoiseLite.FractalType.FBm);
             noise.SetFractalLacunarity(2.0f);
             noise.SetFractalOctaves(3);
-            noise.SetFrequency(0.008f);
+            noise.SetFrequency(0.004f);
             for (int x = 0; x < voxelRes.X; x++)
             {
                 for (int z = 0; z < voxelRes.Z; z++)
@@ -156,11 +169,11 @@ namespace VoxelRenderer
 
                         float height = (float)y / voxelRes.Y;
                         float noiseValue = noise.GetNoise(x, z) * 0.5f + 0.5f;
-                        int index = z * (voxelRes.X * voxelRes.Y) + y * voxelRes.X + x;
+                        int index = flatten(x, y, z);
 
                         voxels[index] = 0;
-                        if (height < stoneThreshold * noiseValue) voxels[index] = 3;
-                        else if (height < dirtThreshold * noiseValue) voxels[index] = 2;
+                        if      (height < stoneThreshold * noiseValue) voxels[index] = 3;
+                        else if (height < dirtThreshold  * noiseValue) voxels[index] = 2;
                         else if (height < grassThreshold * noiseValue) voxels[index] = 1;
                     }
                 }
@@ -170,6 +183,11 @@ namespace VoxelRenderer
             GL.BufferData(BufferTarget.ShaderStorageBuffer, voxels.Length * sizeof(int), voxels, BufferUsageHint.StaticDraw);
             GL.BindBufferBase(BufferRangeTarget.ShaderStorageBuffer, 0, voxelSSBO);
             GL.BindBuffer(BufferTarget.ShaderStorageBuffer, 0);
+        }
+        int flatten(int x, int y, int z)
+        {
+            long index = z * (voxelRes.X * (long)voxelRes.Y) + (long)y * voxelRes.X + x;
+            return (int)index;
         }
         protected override void OnUnload()
         {
@@ -198,10 +216,6 @@ namespace VoxelRenderer
 
             GL.BindVertexArray(fullScreenVAO);
             GL.DrawElements(BeginMode.Triangles, 6, DrawElementsType.UnsignedInt, 0);
-
-            time += e.Time;
-
-            if (time * 0.5f % 0.2f < 0.01f) Title = $"QuickRenderer | frameRate: {Math.Round(1 / e.Time)} | (: | voxels grid: {voxelRes.X}x{voxelRes.Y}x{voxelRes.Z} | resolution: {Size.X}x{Size.Y}";
 
             SwapBuffers();
         }

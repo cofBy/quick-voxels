@@ -11,6 +11,8 @@ uniform vec3 lightColor;
 uniform vec3 lightDir;
 uniform vec2 res;
 
+uniform float time;
+
 uniform int mouseInput;
 
 vec3[] materials =
@@ -24,6 +26,7 @@ layout(std430, binding = 0) buffer voxelBuffer { int voxels[]; };
 uniform int width;
 uniform int height;
 uniform int depth;
+float voxelSize = 0.25f;
 
 struct Ray
 {
@@ -40,20 +43,21 @@ bool inBounds(vec3 pos)
 {
     return all(greaterThanEqual(pos, vec3(0.0))) && all(lessThan(pos, vec3(width, height, depth)));
 }
-int flatten(vec3 pos)
+int flatten(ivec3 pos)
 {
-	return int(pos.z * (width * height) + pos.y * width + pos.x);
+	return pos.z * (width * height) + pos.y * width + pos.x;
 }
 
 int voxelRaycast(Ray ray, out vec3 hitPoint, out vec3 lastVoxel)
 {
-    vec3 invDir = 1.0 / ray.dir;
+    Ray rayCast = Ray(ray.origin / voxelSize, ray.dir / voxelSize);
+    vec3 invDir = 1.0 / rayCast.dir;
     vec3 tDelta = abs(invDir);
-    vec3 step = sign(ray.dir);
+    vec3 step = sign(rayCast.dir);
 
     AABB box = AABB(vec3(0.0), vec3(width, height, depth));
-    vec3 t0 = (box.min - ray.origin) * invDir;
-    vec3 t1 = (box.max - ray.origin) * invDir;
+    vec3 t0 = (box.min - rayCast.origin) * invDir;
+    vec3 t1 = (box.max - rayCast.origin) * invDir;
     vec3 tSmall = min(t0, t1);
     vec3 tBig   = max(t0, t1);
     float tMin = max(max(tSmall.x, tSmall.y), tSmall.z);
@@ -63,18 +67,18 @@ int voxelRaycast(Ray ray, out vec3 hitPoint, out vec3 lastVoxel)
 
     tMin = max(tMin, 0.0);
 
-    vec3 currentStep = floor(ray.origin + ray.dir * tMin);
+    vec3 currentStep = floor(rayCast.origin + rayCast.dir * tMin);
     vec3 planes = currentStep + max(step, 0.0);
-    vec3 t = (planes - ray.origin) * invDir;
+    vec3 t = (planes - rayCast.origin) * invDir;
     vec3 previousStep = currentStep;
     while(true)
     {
         if (inBounds(currentStep))
         {
-            int index = flatten(floor(currentStep)); 
+            int index = flatten(ivec3(currentStep)); 
             if (voxels[index] != 0)
             {
-                hitPoint = ray.origin + ray.dir * hitT;
+                hitPoint = (rayCast.origin + rayCast.dir * hitT) * voxelSize;
                 lastVoxel = previousStep;
                 return index;
             }
@@ -104,15 +108,16 @@ int voxelRaycast(Ray ray, out vec3 hitPoint, out vec3 lastVoxel)
         if (currentStep.x < 0 || currentStep.y < 0 || currentStep.z < 0) return -1;
     }
 }
-int voxelTraversal(Ray ray, out vec3 normal, out vec3 voxelPos)
+int voxelTraversal(Ray ray, out vec3 normal, out vec3 voxelPos, out int voxelIndex)
 {
-    vec3 invDir = 1.0 / ray.dir;
+    Ray rayCast = Ray(ray.origin / voxelSize, ray.dir / voxelSize);
+    vec3 invDir = 1.0 / rayCast.dir;
     vec3 tDelta = abs(invDir);
-    vec3 step = sign(ray.dir);
+    vec3 step = sign(rayCast.dir);
 
     AABB box = AABB(vec3(0.0), vec3(width, height, depth));
-    vec3 t0 = (box.min - ray.origin) * invDir;
-    vec3 t1 = (box.max - ray.origin) * invDir;
+    vec3 t0 = (box.min - rayCast.origin) * invDir;
+    vec3 t1 = (box.max - rayCast.origin) * invDir;
     vec3 tSmall = min(t0, t1);
     vec3 tBig   = max(t0, t1);
     float tMin = max(max(tSmall.x, tSmall.y), tSmall.z);
@@ -126,16 +131,19 @@ int voxelTraversal(Ray ray, out vec3 normal, out vec3 voxelPos)
 
     tMin = max(tMin, 0.0);
 
-    vec3 currentStep = floor(ray.origin + ray.dir * tMin);
+    vec3 currentStep = floor(rayCast.origin + rayCast.dir * tMin);
     vec3 planes = currentStep + max(step, 0.0);
-    vec3 t = (planes - ray.origin) * invDir;
+    vec3 t = (planes - rayCast.origin) * invDir;
 
+    voxelIndex = -1;
     while(true)
     {
         if (inBounds(currentStep))
         {
-            int voxelMat = voxels[flatten(floor(currentStep))];
-            voxelPos = ray.origin + ray.dir * hitT;
+            voxelPos = (rayCast.origin + rayCast.dir * hitT) * voxelSize;
+            voxelIndex = flatten(ivec3(currentStep));
+
+            int voxelMat = voxels[voxelIndex];
             if (voxelMat != 0) return voxelMat;
         }
 
@@ -174,9 +182,10 @@ void main()
 
     vec3 normal;
     vec3 voxelPos;
-    int mat = voxelTraversal(Ray(camPos, rayDir), normal, voxelPos);
+    int voxelIndex;
+    int mat = voxelTraversal(Ray(camPos, rayDir), normal, voxelPos, voxelIndex);
 
-    float radius = 0.5;
+    float radius = 2;
     float dMaxDistance = 50.0;
     float bMinDistance = 10.0;
 
@@ -186,18 +195,27 @@ void main()
 
     int lookedAt = voxelRaycast(Ray(camPos + (uv.x * camRight + uv.y * camUp), camDir), hitPoint, lastHitPoint);
     if (lookedAt != -1 && mouseInput == 1 && length(hitPoint - camPos) < dMaxDistance) voxels[lookedAt] = 0;
-    if (lookedAt != -1 && mouseInput == -1 && length(hitPoint - camPos) > bMinDistance && inBounds(floor(lastHitPoint))) voxels[flatten(floor(lastHitPoint))] = voxels[lookedAt];
+    if (lookedAt != -1 && mouseInput == -1 && length(hitPoint - camPos) > bMinDistance && inBounds(floor(lastHitPoint))) voxels[flatten(ivec3(lastHitPoint))] = voxels[lookedAt];
 
-    if (mat == 0)FragColor = vec4(0.1, 0.12, 0.1, 1);
+    if (mat == 0) FragColor = vec4(0.1, 0.12, 0.1, 1);
     else
     {
-	    float ampientStrength  = 0.2;
+	    float ampientStrength = 0.2;
+        float shadow = 1;
+
+        if (dot(normal, -lightDir) >= 0.0)
+        {
+            vec3 dum1;
+            vec3 dum2;
+            int voxelLightHit = voxelRaycast(Ray(voxelPos + normal * 0.4, -lightDir), dum1, dum2);
+            shadow = voxelLightHit == -1 ? 1 : 0.2;
+        }
 
 	    vec3 viewDir    = normalize(camPos - voxelPos);
 	    vec3 reflectDir = reflect(normalize(-lightDir), normalize(normal));
 
-	    vec3 diffuse  = lightColor * max(dot(normalize(normal), normalize(-lightDir)), 0.0);
-	    vec3 ambient  = ampientStrength * lightColor;
+	    vec3 diffuse = lightColor * max(dot(normalize(normal), normalize(-lightDir)), 0.0) * shadow;
+	    vec3 ambient = ampientStrength * lightColor;
 
         FragColor = vec4(materials[mat - 1] * (diffuse + ambient), 1);
     }
