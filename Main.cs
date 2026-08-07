@@ -21,8 +21,10 @@ namespace VoxelRenderer
         public Main(int width, int height, string title) : base(GameWindowSettings.Default, new NativeWindowSettings() { ClientSize = (width, height), Title = title })
         {
         }
-        Vector3i voxelRes = new Vector3i(700, 400, 700);
-        int[] voxels = new int[0];
+        Vector3i voxelRes = new Vector3i(1000, 512, 1000);
+        Vector3i brickRes;
+        int[] voxels;
+        int[] brickCounts;
 
         Vector3 sunDir = new Vector3(0.7f, -1.0f, 0.5f);
 
@@ -30,6 +32,7 @@ namespace VoxelRenderer
         int fullScreenVBO;
         int fullScreenEBO;
         int voxelSSBO;
+        int brickSSBO;
         Shader fullscreenShader;
         
         protected override void OnUpdateFrame(FrameEventArgs e)
@@ -183,6 +186,30 @@ namespace VoxelRenderer
             GL.BufferData(BufferTarget.ShaderStorageBuffer, voxels.Length * sizeof(int), voxels, BufferUsageHint.StaticDraw);
             GL.BindBufferBase(BufferRangeTarget.ShaderStorageBuffer, 0, voxelSSBO);
             GL.BindBuffer(BufferTarget.ShaderStorageBuffer, 0);
+
+            brickRes = new Vector3i((voxelRes.X + 15) / 16, (voxelRes.Y + 15) / 16, (voxelRes.Z + 15) / 16);
+
+            brickCounts = new int[brickRes.X * brickRes.Y * brickRes.Z];
+
+            for (int i = 0; i < voxels.Length; i++)
+            {
+                if (voxels[i] == 0) continue;
+
+                int xy = voxelRes.X * voxelRes.Y;
+                int rem = i % xy;
+                int x = rem % voxelRes.X;
+                int y = rem / voxelRes.X;
+                int z = i / xy;
+
+                int bx = x / 16, by = y / 16, bz = z / 16;
+                int bIndex = bz * (brickRes.X * brickRes.Y) + by * brickRes.X + bx;
+                brickCounts[bIndex]++;
+            }
+            brickSSBO = GL.GenBuffer();
+            GL.BindBuffer(BufferTarget.ShaderStorageBuffer, brickSSBO);
+            GL.BufferData(BufferTarget.ShaderStorageBuffer, brickCounts.Length * sizeof(int), brickCounts, BufferUsageHint.StaticDraw);
+            GL.BindBufferBase(BufferRangeTarget.ShaderStorageBuffer, 1, brickSSBO);
+            GL.BindBuffer(BufferTarget.ShaderStorageBuffer, 0);
         }
         int flatten(int x, int y, int z)
         {
@@ -211,6 +238,9 @@ namespace VoxelRenderer
             fullscreenShader.setInt("width", voxelRes.X);
             fullscreenShader.setInt("height", voxelRes.Y);
             fullscreenShader.setInt("depth", voxelRes.Z);
+            fullscreenShader.setInt("brickW", brickRes.X);
+            fullscreenShader.setInt("brickH", brickRes.Y);
+            fullscreenShader.setInt("brickD", brickRes.Z);
             fullscreenShader.setInt("mouseInput", (int)input(MouseButton.Left, MouseButton.Right));
             fullscreenShader.setVector2("res", new Vector2(Size.X, Size.Y));
 
