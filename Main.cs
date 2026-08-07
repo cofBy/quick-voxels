@@ -21,7 +21,7 @@ namespace VoxelRenderer
         public Main(int width, int height, string title) : base(GameWindowSettings.Default, new NativeWindowSettings() { ClientSize = (width, height), Title = title })
         {
         }
-        Vector3i voxelRes = new Vector3i(1000, 512, 1000);
+        Vector3i voxelRes = new Vector3i(800, 400, 800);
         Vector3i brickRes;
         int[] voxels;
         int[] brickCounts;

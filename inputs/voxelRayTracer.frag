@@ -281,7 +281,7 @@ void main()
     float dMaxDistance = 30.0;
     float bMinDistance = 5.0;
 
-    if (mouseInput != 0 && length(fragPos) < radius)
+    if (mouseInput != 0 && length(uv) < radius)
     {
         vec3 hitPoint;
         vec3 lastHitPoint;
@@ -328,8 +328,8 @@ void main()
 	    vec3 reflectDir = reflect(normalize(-lightDir), normalize(normal));
 
 	    vec3 diffuse = lightColor * max(dot(normalize(normal), normalize(-lightDir)), 0.0) * shadow;
-	    vec3 ambient = ampientStrength * lightColor * ao;
+	    vec3 ambient = ampientStrength * lightColor;
 
-        FragColor = vec4(materials[mat - 1] * (diffuse + ambient), 1);
+        FragColor = vec4(materials[mat - 1] * (diffuse + ambient) * ao, 1);
     }
 }
