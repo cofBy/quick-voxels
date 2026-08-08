@@ -14,6 +14,7 @@ uniform vec2 res;
 uniform float time;
 
 uniform int mouseInput;
+uniform int buildMat;
 
 vec3[] materials =
 {
@@ -295,7 +296,7 @@ void main()
         }
         if (lookedAt != -1 && mouseInput == -1 && length(hitPoint - camPos) > bMinDistance && inBounds(floor(lastHitPoint)))
         {
-            voxels[flatten(ivec3(lastHitPoint))] = voxels[lookedAt];
+            voxels[flatten(ivec3(lastHitPoint))] = buildMat;
             atomicAdd(brickCounts[brickFlatten(ivec3(lastHitPoint) / BRICK)], 1);
         }
     }

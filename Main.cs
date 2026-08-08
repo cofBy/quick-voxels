@@ -26,6 +26,7 @@ namespace VoxelRenderer
         int brickSize = 16;
         int[] voxels;
         int[] brickCounts;
+        int selectedMaterial;
 
         Vector3 sunDir = new Vector3(0.7f, -1.0f, 0.5f);
 
@@ -64,6 +65,11 @@ namespace VoxelRenderer
             yaw   -= mouseDelta.X * sensitivity;
             pitch -= mouseDelta.Y * sensitivity;
             pitch = MathHelper.Clamp(pitch, MathHelper.DegreesToRadians(-89f), MathHelper.DegreesToRadians(89f));
+
+            if (KeyboardState.IsKeyPressed(Keys.D1)) selectedMaterial = 1;
+            if (KeyboardState.IsKeyPressed(Keys.D2)) selectedMaterial = 2;
+            if (KeyboardState.IsKeyPressed(Keys.D3)) selectedMaterial = 3;
+            //if (KeyboardState.IsKeyDown(Keys.D4)) selectedMaterial = 4;
 
             camDir = polarCoords(pitch, yaw);
 
@@ -242,6 +248,7 @@ namespace VoxelRenderer
             fullscreenShader.setInt("brickW", brickRes.X);
             fullscreenShader.setInt("brickH", brickRes.Y);
             fullscreenShader.setInt("brickD", brickRes.Z);
+            fullscreenShader.setInt("buildMat", selectedMaterial);
             fullscreenShader.setInt("mouseInput", (int)input(MouseButton.Left, MouseButton.Right));
             fullscreenShader.setVector2("res", new Vector2(Size.X, Size.Y));
 
