@@ -152,6 +152,7 @@ int voxelRaycast(Ray ray, out vec3 hitPoint, out vec3 lastVoxel)
         if (currentStep.x >= width || currentStep.y >= height || currentStep.z >= depth) return -1;
         if (currentStep.x < 0 || currentStep.y < 0 || currentStep.z < 0) return -1;
     }
+    return -1;
 }
 int voxelTraversal(Ray ray, out vec3 normal, out vec3 voxelPos, out vec2 uv, out ivec3 voxelCoord)
 {
@@ -249,6 +250,7 @@ int voxelTraversal(Ray ray, out vec3 normal, out vec3 voxelPos, out vec2 uv, out
         if (currentStep.x >= width || currentStep.y >= height || currentStep.z >= depth) return 0;
         if (currentStep.x < 0 || currentStep.y < 0 || currentStep.z < 0) return 0;
     }
+    return 0;
 }
 
 float ambientOcclusion(ivec3 voxelCoord, vec3 normal, ivec3 tangentU, ivec3 tangentV, int u, int v)

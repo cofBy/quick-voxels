@@ -21,8 +21,9 @@ namespace VoxelRenderer
         public Main(int width, int height, string title) : base(GameWindowSettings.Default, new NativeWindowSettings() { ClientSize = (width, height), Title = title })
         {
         }
-        Vector3i voxelRes = new Vector3i(800, 400, 800);
+        Vector3i voxelRes = new Vector3i(700, 300, 700);
         Vector3i brickRes;
+        int brickSize = 16;
         int[] voxels;
         int[] brickCounts;
 
@@ -187,7 +188,7 @@ namespace VoxelRenderer
             GL.BindBufferBase(BufferRangeTarget.ShaderStorageBuffer, 0, voxelSSBO);
             GL.BindBuffer(BufferTarget.ShaderStorageBuffer, 0);
 
-            brickRes = new Vector3i((voxelRes.X + 15) / 16, (voxelRes.Y + 15) / 16, (voxelRes.Z + 15) / 16);
+            brickRes = new Vector3i((voxelRes.X + brickSize - 1) / brickSize, (voxelRes.Y + brickSize - 1) / brickSize, (voxelRes.Z + brickSize - 1) / brickSize);
 
             brickCounts = new int[brickRes.X * brickRes.Y * brickRes.Z];
 
@@ -201,7 +202,7 @@ namespace VoxelRenderer
                 int y = rem / voxelRes.X;
                 int z = i / xy;
 
-                int bx = x / 16, by = y / 16, bz = z / 16;
+                int bx = x / brickSize, by = y / brickSize, bz = z / brickSize;
                 int bIndex = bz * (brickRes.X * brickRes.Y) + by * brickRes.X + bx;
                 brickCounts[bIndex]++;
             }
